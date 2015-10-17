@@ -15,7 +15,7 @@ abstract class ContextConditionContextEntityFieldTest extends DrupalWebTestCase 
    * {@inerithDocs}
    */
   public function setUp() {
-    parent::setUp('ctools', 'context', 'context_entity_field');
+    parent::setUp('context_entity_field');
   }
 
   /**

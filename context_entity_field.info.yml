@@ -1,0 +1,8 @@
+name: 'Context Entity Field'
+description: 'Integrate Entity field into context'
+core: 8.x
+package: Context
+type: module
+dependencies:
+  - context
+  - ctools

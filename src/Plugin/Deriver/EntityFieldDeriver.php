@@ -2,13 +2,12 @@
 
 namespace Drupal\context_entity_field\Plugin\Deriver;
 
-use Drupal\Core\Plugin\Context\ContextDefinition;
 use Drupal\ctools\Plugin\Deriver\EntityBundle;
 
 /**
  * Deriver that creates a condition for each entity type with bundles.
  */
-class EntityField extends EntityBundle {
+class EntityFieldDeriver extends EntityBundle {
 
   /**
    * Provides the bundle label with a fallback when not defined.

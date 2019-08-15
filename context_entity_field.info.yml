@@ -1,5 +1,5 @@
 name: 'Context Entity Field'
-description: 'Integrate Entity field into context'
+description: 'Set context conditions and configure reactions based on entity field values.'
 core: 8.x
 package: Context
 type: module

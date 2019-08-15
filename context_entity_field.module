@@ -1,5 +1,21 @@
 <?php
 
+use Drupal\Core\Routing\RouteMatchInterface;
+
+/**
+ * Implements hook_help().
+ */
+function context_entity_field_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    case 'help.page.context_entity_field':
+      $output = '';
+      $output .= '<h3>' . t('About') . '</h3>';
+      $output .= '<p>'.t('The Context entity field module module lets users define conditions based on entity field values for when certain reactions should take place.').'</p>';
+      $output .= '<p>'.t('For example: when viewing a certain node, some blocks should be placed as a reaction only when a node field has a specific value.').'</p>';
+      return $output;
+  }
+}
+
 /**
  * Implements hook_plugin_filter_TYPE_alter().
  */

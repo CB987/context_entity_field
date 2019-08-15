@@ -13,10 +13,10 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  *
  * @Condition(
  *   id = "entity_field",
- *   deriver = "\Drupal\context_entity_field\Plugin\Deriver\EntityField"
+ *   deriver = "\Drupal\context_entity_field\Plugin\Deriver\EntityFieldDeriver"
  * )
  */
-class EntityField extends ConditionPluginBase implements ContainerFactoryPluginInterface {
+class EntityFieldCondition extends ConditionPluginBase implements ContainerFactoryPluginInterface {
 
   /**
    * The entity type bundle info service.
@@ -28,7 +28,7 @@ class EntityField extends ConditionPluginBase implements ContainerFactoryPluginI
   /**
    * @var \Drupal\Core\Entity\EntityTypeInterface|null
    */
-  protected $bundleOf;
+  protected $entityType;
 
   /**
    * Creates a new EntityField instance.
@@ -47,10 +47,10 @@ class EntityField extends ConditionPluginBase implements ContainerFactoryPluginI
    * @param mixed $plugin_definition
    *   The plugin implementation definition.
    */
-  public function __construct(EntityTypeManagerInterface $entity_type_manager, EntityTypeBundleInfoInterface $entity_type_bundle_info, array $configuration, $plugin_id, $plugin_definition) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, EntityTypeManagerInterface $entity_type_manager, EntityTypeBundleInfoInterface $entity_type_bundle_info) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
     $this->entityTypeBundleInfo = $entity_type_bundle_info;
-    $this->bundleOf = $entity_type_manager->getDefinition($this->getDerivativeId());
+    $this->entityType = $entity_type_manager->getDefinition($this->getDerivativeId());
   }
 
   /**
@@ -58,11 +58,11 @@ class EntityField extends ConditionPluginBase implements ContainerFactoryPluginI
    */
   public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
     return new static(
-      $container->get('entity_type.manager'),
-      $container->get('entity_type.bundle.info'),
       $configuration,
       $plugin_id,
-      $plugin_definition
+      $plugin_definition,
+      $container->get('entity_type.manager'),
+      $container->get('entity_type.bundle.info')
     );
   }
 
@@ -71,7 +71,7 @@ class EntityField extends ConditionPluginBase implements ContainerFactoryPluginI
    */
   public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
     $fields = \Drupal::service('entity_field.manager')->getFieldMap();
-    $fields_name = array_keys($fields[$this->bundleOf->id()]);
+    $fields_name = array_keys($fields[$this->entityType->id()]);
 
     $fields_name = array_combine($fields_name, $fields_name);
     asort($fields_name);
@@ -80,30 +80,30 @@ class EntityField extends ConditionPluginBase implements ContainerFactoryPluginI
       '#title' => $this->t('Field name'),
       '#type' => 'select',
       '#options' => $fields_name,
-      '#description' => $this->t('Select @bundle_type field to check', ['@bundle_type' => $this->bundleOf->getBundleLabel()]),
+      '#description' => $this->t('Select @bundle_type field to check.', ['@bundle_type' => $this->entityType->getBundleLabel()]),
       '#default_value' => $this->configuration['field_name'],
     ];
 
-    $form['field_status'] = [
-      '#title' => $this->t('Field status'),
+    $form['field_state'] = [
+      '#title' => $this->t('Field state'),
       '#type' => 'select',
       '#options' => [
-        'all'   => $this->t('All values'),
-        'empty' => $this->t('Empty value'),
-        'match' => $this->t('Match'),
+        'filled'   => $this->t('Filled'),
+        'empty' => $this->t('Empty'),
+        'value' => $this->t('Value is'),
       ],
-      '#description' => t('Status of field to evaluate.'),
-      '#default_value' => $this->configuration['field_status'],
+      '#description' => $this->t('State of field to evaluate.'),
+      '#default_value' => $this->configuration['field_state'],
     ];
 
     $form['field_value'] = [
       '#title' => $this->t('Field value'),
       '#type' => 'textfield',
-      '#description' => $this->t('Write the entity field value to compare'),
+      '#description' => $this->t('Value to compare against.'),
       '#default_value' => $this->configuration['field_value'],
       '#states' => [
         'visible' => [
-          ':input[name*="field_status"]' => array('value' => 'match'),
+          ':input[name*="field_state"]' => array('value' => 'value'),
         ],
       ],
     ];
@@ -124,26 +124,26 @@ class EntityField extends ConditionPluginBase implements ContainerFactoryPluginI
    */
   public function evaluate() {
     /** @var \Drupal\Core\Entity\ContentEntityInterface $entity */
-    $entity = $this->getContextValue($this->bundleOf->id());
+    $entity = $this->getContextValue($this->entityType->id());
 
     if ($entity && $entity->hasField($this->configuration['field_name'])) {
       $is_empty = $entity->get($this->configuration['field_name'])->isEmpty();
 
       // Field value is empty.
-      if ($this->configuration['field_status'] == 'empty' && $is_empty) {
+      if ($this->configuration['field_state'] == 'empty' && $is_empty) {
         return TRUE;
       }
 
       // Field value is not empty.
-      if ($this->configuration['field_status'] == 'all' && !$is_empty) {
+      if ($this->configuration['field_state'] == 'filled' && !$is_empty) {
         return TRUE;
       }
 
-      // Field value match.
-      if ($this->configuration['field_status'] == 'match' && !$is_empty) {
+      // Field value matches given value.
+      if ($this->configuration['field_state'] == 'value' && !$is_empty) {
         // Control value in available values.
         foreach ($entity->get($this->configuration['field_name']) as $item) {
-          if ($item->getString() == $this->configuration['field_value']) {
+          if ($item->getString() === $this->configuration['field_value']) {
             return TRUE;
           }
         }
@@ -157,7 +157,7 @@ class EntityField extends ConditionPluginBase implements ContainerFactoryPluginI
    * {@inheritdoc}
    */
   public function summary() {
-    return $this->t('@bundle_type field', ['@bundle_type' => $this->bundleOf->getBundleLabel()]);
+    return $this->t('@bundle_type field', ['@bundle_type' => $this->entityType->getBundleLabel()]);
   }
 
   /**
@@ -166,7 +166,7 @@ class EntityField extends ConditionPluginBase implements ContainerFactoryPluginI
   public function defaultConfiguration() {
     return parent::defaultConfiguration() + [
       'field_name' => '',
-      'field_status' => 'all',
+      'field_state' => 'filled',
       'field_value' => '',
     ];
   }

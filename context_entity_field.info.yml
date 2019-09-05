@@ -4,5 +4,5 @@ core: 8.x
 package: Context
 type: module
 dependencies:
-  - context
-  - ctools
+  - context:context
+  - ctools:ctools

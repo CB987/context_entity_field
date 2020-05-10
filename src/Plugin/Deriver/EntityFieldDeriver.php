@@ -27,7 +27,7 @@ class EntityFieldDeriver extends EntityBundle {
     $fallback = $entity_type->getLabel();
     if ($bundle_entity_type = $entity_type->getBundleEntityType()) {
       // This is a better fallback.
-      $fallback = $this->entityManager->getDefinition($bundle_entity_type)->getLabel();
+      $fallback = $this->entityTypeManager->getDefinition($bundle_entity_type)->getLabel();
     }
 
     return $this->t('@label bundle field', ['@label' => $fallback]);

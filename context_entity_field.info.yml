@@ -1,6 +1,6 @@
 name: 'Context Entity Field'
 description: 'Set context conditions and configure reactions based on entity field values.'
-core: 8.x
+core_version_requirement: ^8 || ^9
 package: Context
 type: module
 dependencies:

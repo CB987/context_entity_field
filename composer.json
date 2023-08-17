@@ -1,0 +1,10 @@
+{
+  "name": "drupal/context_entity_field",
+  "type": "drupal-module",
+  "license": "GPL-2.0+",
+  "description": "Set context conditions and configure reactions based on entity field values.",
+  "require": {
+      "drupal/core": "^8.8 || ^9 || ^10"
+  }
+}
+
